@@ -46,6 +46,7 @@ class TetrisScene extends Phaser.Scene {
       this.blockSprites[i] = new Array(10).fill(null);
     }
   }
+  
   preload() {
     this.load.image("j","assets/Shape Blocks/J.png");
     this.load.image("i","assets/Shape Blocks/I.png");
@@ -67,6 +68,7 @@ class TetrisScene extends Phaser.Scene {
       this.blockSize = oTetrimino.width/4;
     });
   }
+  
   create() {
     let bg = this.add.image(0,0,"board");
     bg.setOrigin(0,0);
@@ -82,7 +84,9 @@ class TetrisScene extends Phaser.Scene {
     this.moveInterval = 60;
     this.spawnTetrimino();
     this.cursors = this.input.keyboard.createCursorKeys();
+    console.log("Cursor keys initialized:", this.cursors);
   }
+  
   spawnTetrimino() {
     const tetriminos = ["j","i","l","z","s","t","o"];
     if(!this.nextTetriminoType) {
@@ -105,6 +109,7 @@ class TetrisScene extends Phaser.Scene {
     this.currentTetrimino.body.collideWorldBounds = true;
     this.currentTetrimino.blocks = this.calculateBlockPositions(this.currentTetriminoType,0);
   }
+  
   calculateBlockPositions(type) {
     const positions = [];
     const matrix = tetriminos[type];
@@ -117,133 +122,147 @@ class TetrisScene extends Phaser.Scene {
     }
     return positions;
   }
- update() {
-  this.moveCounter++;
-  if (this.currentTetrimino && this.moveCounter >= this.moveInterval) {
-    this.setTetriminoOnBoard(0);
-    this.currentTetrimino.y += this.blockSize;
-    this.moveCounter = 0;
-    this.setTetriminoOnBoard(2);
-    this.time.delayedCall(500, () => {
-      this.checkAndHandleLandedTetrimino();
-    });
-  }
-  if (!this.currentTetrimino) return;
+  
+  update() {
+    this.moveCounter++;
+    if (this.currentTetrimino && this.moveCounter >= this.moveInterval) {
+      this.setTetriminoOnBoard(0);
+      this.currentTetrimino.y += this.blockSize;
+      this.moveCounter = 0;
+      this.setTetriminoOnBoard(2);
+      this.time.delayedCall(500, () => {
+        this.checkAndHandleLandedTetrimino();
+      });
+    }
+    if (!this.currentTetrimino) return;
 
-  if (Phaser.Input.Keyboard.JustDown(this.cursors.left)) {
-    if (!this.isMoveValid(-1)) return;
-    this.setTetriminoOnBoard(0);
-    this.currentTetrimino.x -= this.blockSize;
-    this.setTetriminoOnBoard(2);
-    this.checkAndHandleLandedTetrimino();
-  }
-  if (Phaser.Input.Keyboard.JustDown(this.cursors.right)) {
-    if (!this.isMoveValid(1)) return;
-    this.setTetriminoOnBoard(0);
-    this.currentTetrimino.x += this.blockSize;
-    this.setTetriminoOnBoard(2);
-    this.checkAndHandleLandedTetrimino();
-  }
-  if (this.cursors.down.isDown && this.moveCounter % 5 == 0) {
-    this.setTetriminoOnBoard(0);
-    if (!this.hasLanded()) this.currentTetrimino.y += this.blockSize;
-    this.setTetriminoOnBoard(2);
-    if (this.hasLanded()) {
+    if (Phaser.Input.Keyboard.JustDown(this.cursors.left)) {
+      if (!this.isMoveValid(-1)) return;
+      this.setTetriminoOnBoard(0);
+      this.currentTetrimino.x -= this.blockSize;
+      this.setTetriminoOnBoard(2);
+      this.checkAndHandleLandedTetrimino();
+    }
+    if (Phaser.Input.Keyboard.JustDown(this.cursors.right)) {
+      if (!this.isMoveValid(1)) return;
+      this.setTetriminoOnBoard(0);
+      this.currentTetrimino.x += this.blockSize;
+      this.setTetriminoOnBoard(2);
+      this.checkAndHandleLandedTetrimino();
+    }
+    if (this.cursors.down.isDown && this.moveCounter % 5 == 0) {
+      this.setTetriminoOnBoard(0);
+      if (!this.hasLanded()) this.currentTetrimino.y += this.blockSize;
+      this.setTetriminoOnBoard(2);
+      if (this.hasLanded()) {
+        this.landTetrimino();
+      }
+    }
+    if (Phaser.Input.Keyboard.JustDown(this.cursors.up)) {
+      console.log("Up arrow pressed");
+      if (!this.hasLanded()) {
+        console.log("Tetrimino not landed, attempting rotation");
+        this.setTetriminoOnBoard(0);
+        this.rotateTetrimino();
+        this.setTetriminoOnBoard(2);
+      } else {
+        console.log("Tetrimino has landed, rotation prevented");
+      }
+    }
+    if (Phaser.Input.Keyboard.JustDown(this.cursors.space)) {
+      while (!this.hasLanded()) {
+        this.currentTetrimino.y += this.blockSize;
+      }
       this.landTetrimino();
     }
   }
-  if (Phaser.Input.Keyboard.JustDown(this.cursors.up) && !this.hasLanded()) {
-    this.setTetriminoOnBoard(0);
-    this.rotateTetrimino();
-    this.setTetriminoOnBoard(2);
-  }
-  if (Phaser.Input.Keyboard.JustDown(this.cursors.space)) {
-    while (!this.hasLanded()) {
-      this.currentTetrimino.y += this.blockSize;
-    }
-    this.landTetrimino();
-  }
-}
 
-rotateTetrimino() {
-  const currentMatrix = tetriminos[this.currentTetriminoType];
-  const rotatedMatrix = [];
-  const N = currentMatrix.length;
+  rotateTetrimino() {
+    console.log("Attempting to rotate Tetrimino");
+    const currentMatrix = tetriminos[this.currentTetriminoType];
+    const rotatedMatrix = [];
+    const N = currentMatrix.length;
 
-  for (let i = 0; i < N; i++) {
-    rotatedMatrix[i] = [];
-    for (let j = 0; j < N; j++) {
-      rotatedMatrix[i][j] = currentMatrix[N - j - 1][i];
-    }
-  }
-
-  const newBlocks = [];
-  for (let i = 0; i < rotatedMatrix.length; i++) {
-    for (let j = 0; j < rotatedMatrix[i].length; j++) {
-      if (rotatedMatrix[i][j] === 1) {
-        newBlocks.push({ x: j, y: i });
+    for (let i = 0; i < N; i++) {
+      rotatedMatrix[i] = [];
+      for (let j = 0; j < N; j++) {
+        rotatedMatrix[i][j] = currentMatrix[N - j - 1][i];
       }
     }
-  }
 
-  const canRotate = newBlocks.every((block) => {
-    const x = Math.floor((this.currentTetrimino.x + block.x * this.blockSize) / this.blockSize);
-    const y = Math.floor((this.currentTetrimino.y + block.y * this.blockSize) / this.blockSize);
-    return x >= 0 && x < 10 && y < 20 && this.gameBoard[y][x] === 0;
-  });
-
-  if (canRotate) {
-    tetriminos[this.currentTetriminoType] = rotatedMatrix;
-    this.currentTetrimino.blocks = newBlocks;
-    this.currentTetrimino.rotationState = (this.currentTetrimino.rotationState + 1) % 4;
-  } else {
-    this.setTetriminoOnBoard(2); // Revert the tetrimino to its previous position
-  }
-}
-
-checkAndHandleLandedTetrimino() {
-  if(this.hasLanded()) {
-    this.setTetriminoOnBoard(0);
-    this.landTetrimino();
-  }
-}
-
-isMoveValid(direction) {
-  let moveValid = true;
-  this.currentTetrimino.blocks.forEach((block)=>{
-    const x = Math.floor((this.currentTetrimino.x+block.x*this.blockSize)/this.blockSize);
-    const y = Math.floor((this.currentTetrimino.y+block.y*this.blockSize)/this.blockSize);
-    if(this.gameBoard[y][x+direction]===1 || (x+direction)<0 || (x+direction)>9) moveValid = false;
-  });
-   return moveValid;
-}
-setTetriminoOnBoard(value) {
-   this.currentTetrimino.blocks.forEach((block)=>{
-    const x = Math.floor((this.currentTetrimino.x+block.x*this.blockSize)/this.blockSize);
-    const y = Math.floor((this.currentTetrimino.y+block.y*this.blockSize)/this.blockSize);
-    if(x>=0 && x<10 && y>=0 && y<20) {
-      this.gameBoard[y][x] = value;
+    const newBlocks = [];
+    for (let i = 0; i < rotatedMatrix.length; i++) {
+      for (let j = 0; j < rotatedMatrix[i].length; j++) {
+        if (rotatedMatrix[i][j] === 1) {
+          newBlocks.push({ x: j, y: i });
+        }
+      }
     }
-   });
-}
 
-hasLanded() {
-  for(let block of this.currentTetrimino.blocks) {
-    const x = Math.floor((this.currentTetrimino.x+block.x*this.blockSize)/this.blockSize);
-    const y = Math.floor((this.currentTetrimino.y+block.y*this.blockSize)/this.blockSize);
-    if(y>=19) {
-      return true;
-    }
-    if(y<20 && x<10 && this.gameBoard[y+1][x]===1) {
-      return true;
+    const canRotate = newBlocks.every((block) => {
+      const x = Math.floor((this.currentTetrimino.x + block.x * this.blockSize) / this.blockSize);
+      const y = Math.floor((this.currentTetrimino.y + block.y * this.blockSize) / this.blockSize);
+      return x >= 0 && x < 10 && y < 20 && this.gameBoard[y][x] === 0;
+    });
+
+    if (canRotate) {
+      console.log("Rotation successful");
+      tetriminos[this.currentTetriminoType] = rotatedMatrix;
+      this.currentTetrimino.blocks = newBlocks;
+      this.currentTetrimino.rotationState = (this.currentTetrimino.rotationState + 1) % 4;
+    } else {
+      console.log("Rotation prevented due to collision");
+      this.setTetriminoOnBoard(2);
     }
   }
-  return false;
-}
-landTetrimino() {
-  this.setTetriminoOnBoard(1);
-  this.spawnTetrimino();
-}
+
+  checkAndHandleLandedTetrimino() {
+    if(this.hasLanded()) {
+      this.setTetriminoOnBoard(0);
+      this.landTetrimino();
+    }
+  }
+
+  isMoveValid(direction) {
+    let moveValid = true;
+    this.currentTetrimino.blocks.forEach((block)=>{
+      const x = Math.floor((this.currentTetrimino.x+block.x*this.blockSize)/this.blockSize);
+      const y = Math.floor((this.currentTetrimino.y+block.y*this.blockSize)/this.blockSize);
+      if(this.gameBoard[y][x+direction]===1 || (x+direction)<0 || (x+direction)>9) moveValid = false;
+    });
+    return moveValid;
+  }
+
+  setTetriminoOnBoard(value) {
+    this.currentTetrimino.blocks.forEach((block)=>{
+      const x = Math.floor((this.currentTetrimino.x+block.x*this.blockSize)/this.blockSize);
+      const y = Math.floor((this.currentTetrimino.y+block.y*this.blockSize)/this.blockSize);
+      if(x>=0 && x<10 && y>=0 && y<20) {
+        this.gameBoard[y][x] = value;
+      }
+    });
+  }
+
+  hasLanded() {
+    for(let block of this.currentTetrimino.blocks) {
+      const x = Math.floor((this.currentTetrimino.x+block.x*this.blockSize)/this.blockSize);
+      const y = Math.floor((this.currentTetrimino.y+block.y*this.blockSize)/this.blockSize);
+      if(y>=19) {
+        console.log("Tetrimino has landed (bottom of board)");
+        return true;
+      }
+      if(y<20 && x<10 && this.gameBoard[y+1][x]===1) {
+        console.log("Tetrimino has landed (on another block)");
+        return true;
+      }
+    }
+    return false;
+  }
+
+  landTetrimino() {
+    this.setTetriminoOnBoard(1);
+    this.spawnTetrimino();
+  }
 }
 
 const config = {
@@ -262,24 +281,3 @@ const config = {
 };
 
 window.game = new Phaser.Game(config);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
