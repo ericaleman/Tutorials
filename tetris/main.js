@@ -166,14 +166,14 @@ class TetrisScene extends Phaser.Scene {
 }
 
 rotateTetrimino() {
-  const matrix = tetriminos[this.currentTetriminoType];
+  const currentMatrix = tetriminos[this.currentTetriminoType];
   const rotatedMatrix = [];
-  const N = matrix.length;
-  
+  const N = currentMatrix.length;
+
   for (let i = 0; i < N; i++) {
     rotatedMatrix[i] = [];
     for (let j = 0; j < N; j++) {
-      rotatedMatrix[i][j] = matrix[N - j - 1][i];
+      rotatedMatrix[i][j] = currentMatrix[N - j - 1][i];
     }
   }
 
@@ -195,6 +195,9 @@ rotateTetrimino() {
   if (canRotate) {
     tetriminos[this.currentTetriminoType] = rotatedMatrix;
     this.currentTetrimino.blocks = newBlocks;
+    this.currentTetrimino.rotationState = (this.currentTetrimino.rotationState + 1) % 4;
+  } else {
+    this.setTetriminoOnBoard(2); // Revert the tetrimino to its previous position
   }
 }
 
