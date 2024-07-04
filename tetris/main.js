@@ -119,50 +119,84 @@ class TetrisScene extends Phaser.Scene {
   }
  update() {
   this.moveCounter++;
-  if(this.currentTetrimino && this.moveCounter>= this.moveInterval) {
+  if (this.currentTetrimino && this.moveCounter >= this.moveInterval) {
     this.setTetriminoOnBoard(0);
     this.currentTetrimino.y += this.blockSize;
-    this.moveCounter =0;
+    this.moveCounter = 0;
     this.setTetriminoOnBoard(2);
-    this.time.delayedCall(500,()=>{
+    this.time.delayedCall(500, () => {
       this.checkAndHandleLandedTetrimino();
     });
   }
-  if(!this.currentTetrimino) return;
-   if(Phaser.Input.Keyboard.JustDown(this.cursors.left)) {
-    if(!this.isMoveValid(-1)) return;
+  if (!this.currentTetrimino) return;
+
+  if (Phaser.Input.Keyboard.JustDown(this.cursors.left)) {
+    if (!this.isMoveValid(-1)) return;
     this.setTetriminoOnBoard(0);
-    this.currentTetrimino.x -=this.blockSize;
+    this.currentTetrimino.x -= this.blockSize;
     this.setTetriminoOnBoard(2);
     this.checkAndHandleLandedTetrimino();
-   }
-   if(Phaser.Input.Keyboard.JustDown(this.cursors.right)) {
-    if(!this.isMoveValid(1)) return;
+  }
+  if (Phaser.Input.Keyboard.JustDown(this.cursors.right)) {
+    if (!this.isMoveValid(1)) return;
     this.setTetriminoOnBoard(0);
-    this.currentTetrimino.x +=this.blockSize;
+    this.currentTetrimino.x += this.blockSize;
     this.setTetriminoOnBoard(2);
     this.checkAndHandleLandedTetrimino();
-   }
-   if(this.cursors.down.isDown && this.moveCounter % 5 == 0) {
+  }
+  if (this.cursors.down.isDown && this.moveCounter % 5 == 0) {
     this.setTetriminoOnBoard(0);
-    if(!this.hasLanded())
-      this.currentTetrimino.y+=this.blockSize;
+    if (!this.hasLanded()) this.currentTetrimino.y += this.blockSize;
     this.setTetriminoOnBoard(2);
-    if(this.hasLanded()) {
+    if (this.hasLanded()) {
       this.landTetrimino();
     }
-   }
-   if(Phaser.Input.Keyboard.JustDown(this.cursors.up) && !this.hasLanded()) {
+  }
+  if (Phaser.Input.Keyboard.JustDown(this.cursors.up) && !this.hasLanded()) {
     this.setTetriminoOnBoard(0);
+    this.rotateTetrimino();
     this.setTetriminoOnBoard(2);
-   }
-   if(Phaser.Input.Keyboard.JustDown(this.cursors.space)) {
-    while(!this.hasLanded()) {
-      this.currentTetrimino.y +=this.blockSize;
+  }
+  if (Phaser.Input.Keyboard.JustDown(this.cursors.space)) {
+    while (!this.hasLanded()) {
+      this.currentTetrimino.y += this.blockSize;
     }
     this.landTetrimino();
-   }
- }
+  }
+}
+
+rotateTetrimino() {
+  const matrix = tetriminos[this.currentTetriminoType];
+  const rotatedMatrix = [];
+  const N = matrix.length;
+  
+  for (let i = 0; i < N; i++) {
+    rotatedMatrix[i] = [];
+    for (let j = 0; j < N; j++) {
+      rotatedMatrix[i][j] = matrix[N - j - 1][i];
+    }
+  }
+
+  const newBlocks = [];
+  for (let i = 0; i < rotatedMatrix.length; i++) {
+    for (let j = 0; j < rotatedMatrix[i].length; j++) {
+      if (rotatedMatrix[i][j] === 1) {
+        newBlocks.push({ x: j, y: i });
+      }
+    }
+  }
+
+  const canRotate = newBlocks.every((block) => {
+    const x = Math.floor((this.currentTetrimino.x + block.x * this.blockSize) / this.blockSize);
+    const y = Math.floor((this.currentTetrimino.y + block.y * this.blockSize) / this.blockSize);
+    return x >= 0 && x < 10 && y < 20 && this.gameBoard[y][x] === 0;
+  });
+
+  if (canRotate) {
+    tetriminos[this.currentTetriminoType] = rotatedMatrix;
+    this.currentTetrimino.blocks = newBlocks;
+  }
+}
 
 checkAndHandleLandedTetrimino() {
   if(this.hasLanded()) {
